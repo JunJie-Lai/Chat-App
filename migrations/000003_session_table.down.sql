@@ -1,0 +1,1 @@
+drop TABLE IF EXISTS session_token;
