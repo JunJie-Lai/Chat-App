@@ -92,7 +92,7 @@
                 const data = JSON.parse(event.data);
 
                 // Extract username, message, and timestamp
-                const {username, message, timestamp} = data;
+                const {username, message, timestamp, super_chat} = data;
 
                 // Decode the message (assuming Base64 encoding)
                 const decodedMessage = atob(message);
@@ -101,6 +101,9 @@
                 const formattedTime = new Date(timestamp).toLocaleString();
                 const messageElement = document.createElement("div");
                 messageElement.textContent = `[${formattedTime}] ${username}: ${decodedMessage}`;
+                if (super_chat) {
+                    messageElement.textContent = messageElement.textContent.concat(" SUPER CHAT")
+                }
                 messagesDiv.appendChild(messageElement);
             } catch (error) {
                 console.error("Error parsing JSON message:", error);

@@ -22,6 +22,7 @@ type Message struct {
 	Username  string    `json:"username"`
 	Message   []byte    `json:"message"`
 	Timestamp time.Time `json:"timestamp"`
+	SuperChat bool      `json:"super_chat"`
 	RoomID    int64     `json:"-"`
 }
 
@@ -46,6 +47,7 @@ func (client *Client) ReadMessage() {
 			Message:   message,
 			Timestamp: time.Now(),
 			RoomID:    client.RoomID,
+			SuperChat: false,
 		}
 	}
 }
