@@ -5,12 +5,13 @@ import (
 	"github.com/JunJie-Lai/Chat-App/internal/data"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
-	"log"
+	"log/slog"
 	"time"
 )
 
 type Client struct {
 	Conn      *websocket.Conn
+	Logger    *slog.Logger
 	User      *data.User
 	Message   chan *Message
 	Server    *Server
@@ -30,6 +31,7 @@ func (client *Client) ReadMessage() {
 	defer func(Conn *websocket.Conn) {
 		client.Server.Unregister <- client
 		if err := Conn.Close(websocket.StatusNormalClosure, "Disconnected."); err != nil {
+			client.Logger.Error(err.Error())
 			return
 		}
 	}(client.Conn)
@@ -38,7 +40,7 @@ func (client *Client) ReadMessage() {
 		_, message, err := client.Conn.Read(context.Background())
 		if err != nil {
 			if websocket.CloseStatus(err) != websocket.StatusGoingAway {
-				log.Println("Read error: ", err)
+				client.Logger.Error("Read error: ", err.Error())
 			}
 			break
 		}
@@ -62,7 +64,7 @@ func (client *Client) WriteMessage() {
 	for {
 		if err := wsjson.Write(context.Background(), client.Conn, <-client.Message); err != nil {
 			if websocket.CloseStatus(err) != -1 {
-				log.Println("Write error: ", err)
+				client.Logger.Error("Write error: ", err.Error())
 			}
 			break
 		}
@@ -70,7 +72,7 @@ func (client *Client) WriteMessage() {
 		for msg := range client.Message {
 			if err := wsjson.Write(context.Background(), client.Conn, msg); err != nil {
 				if websocket.CloseStatus(err) != -1 {
-					log.Println("Write message history error: ", err)
+					client.Logger.Error("Write message history error: ", err.Error())
 				}
 				break
 			}

@@ -73,6 +73,7 @@ func (app *application) websocketHandler(w http.ResponseWriter, r *http.Request)
 
 	client := &chat.Client{
 		Conn:    ws,
+		Logger:  app.logger,
 		User:    app.contextGetUser(r),
 		Message: make(chan *chat.Message, 128),
 		Server:  app.chatServer,

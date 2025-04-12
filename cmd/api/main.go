@@ -7,6 +7,7 @@ import (
 	"github.com/JunJie-Lai/Chat-App/internal/data"
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 	"log/slog"
 	"os"
 	"sync"
@@ -20,6 +21,7 @@ type application struct {
 	logger     *slog.Logger
 	chatServer *chat.Server
 	models     data.Models
+	redisDB    *redis.Client
 }
 
 func main() {
@@ -36,13 +38,18 @@ func main() {
 		}
 	}(db)
 
-	chatServer := chat.NewServer()
+	redisDB := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+
+	chatServer := chat.NewServer(redisDB)
 	go chatServer.Run()
 
 	app := &application{
 		logger:     logger,
 		chatServer: chatServer,
 		models:     data.NewModels(db),
+		redisDB:    redisDB,
 	}
 
 	if err := app.serve(); err != nil {
