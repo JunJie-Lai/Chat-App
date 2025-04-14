@@ -32,7 +32,7 @@ func (app *application) websocketHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	if input.SessionToken != nil {
-		user, err := app.models.User.GetForToken(*input.SessionToken)
+		user, err := app.models.User.GetFromToken(*input.SessionToken)
 		if err != nil {
 			var tokenErr string
 			switch {
@@ -42,13 +42,6 @@ func (app *application) websocketHandler(w http.ResponseWriter, r *http.Request)
 				tokenErr = "Server Error"
 			}
 			if err := ws.Close(websocket.StatusInternalError, tokenErr); err != nil {
-				return
-			}
-			return
-		}
-
-		if err := app.models.SessionToken.DeleteAllForUser(user.ID, *input.SessionToken); err != nil {
-			if err := ws.Close(websocket.StatusInternalError, "Server Error"); err != nil {
 				return
 			}
 			return

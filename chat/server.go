@@ -2,7 +2,6 @@ package chat
 
 import (
 	"github.com/JunJie-Lai/Chat-App/internal/data"
-	"log"
 	"sync"
 )
 
@@ -51,11 +50,7 @@ func (server *Server) Run() {
 			room.mu.Unlock()
 
 			// Get message history
-			messages, err := server.models.Message.Get(client.RoomID)
-			if err != nil {
-				log.Println(err)
-			}
-
+			messages, _ := server.models.Message.Get(client.RoomID)
 			// Send message history
 			for _, message := range messages {
 				select {
@@ -81,9 +76,8 @@ func (server *Server) Run() {
 			}
 		case message := <-server.Broadcast:
 			if room, ok := server.rooms[message.RoomID]; ok {
-				if err := server.models.Message.Set(message); err != nil {
-					log.Println(err.Error())
-				}
+				// Add message to message history
+				_ = server.models.Message.Set(message)
 
 				room.mu.RLock()
 				// Send message to all clients

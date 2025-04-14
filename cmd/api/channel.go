@@ -175,7 +175,7 @@ func (app *application) getChannelHandler(w http.ResponseWriter, r *http.Request
 
 	var websocketToken *data.SessionToken
 	if user := app.contextGetUser(r); !user.IsAnonymous() {
-		token, err := app.models.SessionToken.New(user.ID, 3*time.Second)
+		token, err := app.models.SessionToken.New(user, 3*time.Second)
 		if err != nil {
 			app.serverErrorResponse(w, r, err)
 			return

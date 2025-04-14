@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/JunJie-Lai/Chat-App/internal/validator"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"time"
 )
@@ -18,15 +19,15 @@ var (
 type UserInterface interface {
 	Insert(*User) error
 	GetByEmail(string) (*User, error)
-	Update(*User) error
-	GetForToken(string) (*User, error)
+	Update(string, *User) error
+	GetFromToken(string) (*User, error)
 }
 
 type User struct {
-	ID       int64    `json:"user_id"`
-	Name     string   `json:"user_name"`
-	Email    string   `json:"email"`
-	Password password `json:"-"`
+	ID       int64    `json:"user_id" redis:"user_id"`
+	Name     string   `json:"user_name" redis:"user_name"`
+	Email    string   `json:"email" redis:"email"`
+	Password password `json:"-" redis:"-"`
 }
 
 type password struct {
@@ -35,7 +36,8 @@ type password struct {
 }
 
 type UserModel struct {
-	db *sql.DB
+	db      *sql.DB
+	redisDB *redis.Client
 }
 
 func (m UserModel) Insert(user *User) error {
@@ -73,7 +75,7 @@ func (m UserModel) GetByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-func (m UserModel) Update(user *User) error {
+func (m UserModel) Update(tokenPlaintext string, user *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -89,28 +91,31 @@ func (m UserModel) Update(user *User) error {
 			return err
 		}
 	}
+
+	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
+	m.redisDB.HSet(ctx, string(tokenHash[:]), user)
 	return nil
 }
 
-func (m UserModel) GetForToken(tokenPlaintext string) (*User, error) {
-	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
-
-	var user User
-
+func (m UserModel) GetFromToken(tokenPlaintext string) (*User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	if err := m.db.QueryRowContext(ctx,
-		"SELECT id, name, email, password_hash FROM users INNER JOIN session_token ON id = user_id WHERE hash = $1 AND expiry > $2",
-		tokenHash[:], time.Now()).
-		Scan(&user.ID, &user.Name, &user.Email, &user.Password.hash); err != nil {
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			return nil, ErrRecordNotFound
-		default:
-			return nil, err
-		}
+	tokenHash := sha256.Sum256([]byte(tokenPlaintext))
+
+	var user User
+	exist, err := m.redisDB.Exists(ctx, string(tokenHash[:])).Result()
+	if err != nil {
+		return nil, err
 	}
+	if exist == 0 {
+		return nil, ErrRecordNotFound
+	}
+
+	if err := m.redisDB.HGetAll(ctx, string(tokenHash[:])).Scan(&user); err != nil {
+		return nil, err
+	}
+
 	return &user, nil
 }
 

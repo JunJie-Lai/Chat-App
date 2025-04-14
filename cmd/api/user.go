@@ -48,7 +48,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	token, err := app.models.SessionToken.New(user.ID, 7*24*time.Hour)
+	token, err := app.models.SessionToken.New(user, 7*24*time.Hour)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -102,7 +102,7 @@ func (app *application) loginUserHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	token, err := app.models.SessionToken.New(user.ID, 3*24*time.Hour)
+	token, err := app.models.SessionToken.New(user, 7*24*time.Hour)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -114,13 +114,16 @@ func (app *application) loginUserHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) logoutUserHandler(w http.ResponseWriter, r *http.Request) {
-	user := app.contextGetUser(r)
-
 	authorizationHeader := r.Header.Get("Authorization")
 	headerParts := strings.Split(authorizationHeader, " ")
 	token := headerParts[1]
-	if err := app.models.SessionToken.DeleteAllForUser(user.ID, token); err != nil {
-		app.serverErrorResponse(w, r, err)
+	if err := app.models.SessionToken.Delete(token); err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 

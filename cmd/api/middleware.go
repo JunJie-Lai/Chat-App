@@ -111,7 +111,7 @@ func (app *application) authenticate(next http.Handler) http.HandlerFunc {
 			return
 		}
 
-		user, err := app.models.User.GetForToken(token)
+		user, err := app.models.User.GetFromToken(token)
 		if err != nil {
 			switch {
 			case errors.Is(err, data.ErrRecordNotFound):

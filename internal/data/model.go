@@ -20,8 +20,8 @@ type Models struct {
 
 func NewModels(db *sql.DB, redisDB *redis.Client) Models {
 	return Models{
-		User:         &UserModel{db},
-		SessionToken: &SessionTokenModel{db, redisDB},
+		User:         &UserModel{db, redisDB},
+		SessionToken: &SessionTokenModel{redisDB},
 		Channel:      &ChannelModel{db},
 		Message:      &MessageModel{db, redisDB},
 	}
