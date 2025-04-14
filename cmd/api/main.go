@@ -21,7 +21,6 @@ type application struct {
 	logger     *slog.Logger
 	chatServer *chat.Server
 	models     data.Models
-	redisDB    *redis.Client
 }
 
 func main() {
@@ -42,15 +41,13 @@ func main() {
 		Addr: "localhost:6379",
 	})
 
-	chatServer := chat.NewServer(redisDB)
-	go chatServer.Run()
-
 	app := &application{
 		logger:     logger,
-		chatServer: chatServer,
-		models:     data.NewModels(db),
-		redisDB:    redisDB,
+		models:     data.NewModels(db, redisDB),
+		chatServer: chat.NewServer(data.NewModels(db, redisDB)),
 	}
+
+	go app.chatServer.Run()
 
 	if err := app.serve(); err != nil {
 		logger.Error(err.Error())

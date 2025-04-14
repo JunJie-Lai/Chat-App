@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"github.com/JunJie-Lai/Chat-App/chat"
 	"github.com/JunJie-Lai/Chat-App/internal/data"
 	"net/http"
 	"time"
@@ -34,7 +33,7 @@ func (app *application) superChatHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	app.chatServer.Broadcast <- &chat.Message{
+	app.chatServer.Broadcast <- &data.Message{
 		Username:  app.contextGetUser(r).Name,
 		Message:   []byte(input.Message),
 		Timestamp: time.Now(),

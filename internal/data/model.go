@@ -3,6 +3,7 @@ package data
 import (
 	"database/sql"
 	"errors"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -14,12 +15,14 @@ type Models struct {
 	User         UserInterface
 	SessionToken SessionTokenInterface
 	Channel      ChannelInterface
+	Message      MessageInterface
 }
 
-func NewModels(db *sql.DB) Models {
+func NewModels(db *sql.DB, redisDB *redis.Client) Models {
 	return Models{
 		User:         &UserModel{db},
-		SessionToken: &SessionTokenModel{db},
+		SessionToken: &SessionTokenModel{db, redisDB},
 		Channel:      &ChannelModel{db},
+		Message:      &MessageModel{db, redisDB},
 	}
 }

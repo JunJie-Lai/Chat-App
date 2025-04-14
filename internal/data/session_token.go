@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/base32"
 	"github.com/JunJie-Lai/Chat-App/internal/validator"
+	"github.com/redis/go-redis/v9"
 	"time"
 )
 
@@ -24,7 +25,8 @@ type SessionToken struct {
 }
 
 type SessionTokenModel struct {
-	db *sql.DB
+	db      *sql.DB
+	redisDB *redis.Client
 }
 
 func generateToken(userID int64, ttl time.Duration) (*SessionToken, error) {

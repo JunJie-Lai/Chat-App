@@ -75,7 +75,7 @@ func (app *application) websocketHandler(w http.ResponseWriter, r *http.Request)
 		Conn:    ws,
 		Logger:  app.logger,
 		User:    app.contextGetUser(r),
-		Message: make(chan *chat.Message, 128),
+		Message: make(chan *data.Message, 128),
 		Server:  app.chatServer,
 		RoomID:  channel.ID,
 		CloseSlow: func() {

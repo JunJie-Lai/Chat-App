@@ -1,34 +1,33 @@
 package chat
 
 import (
-	"context"
-	"github.com/redis/go-redis/v9"
-	"strconv"
+	"github.com/JunJie-Lai/Chat-App/internal/data"
+	"log"
 	"sync"
 )
 
 type room struct {
-	mu       sync.RWMutex
-	clients  map[*Client]struct{}
-	messages []*Message
+	mu      sync.RWMutex
+	clients map[*Client]struct{}
 }
 
 type Server struct {
-	mu         sync.RWMutex
-	redisDB    *redis.Client
-	rooms      map[int64]*room
 	Register   chan *Client
 	Unregister chan *Client
-	Broadcast  chan *Message
+	Broadcast  chan *data.Message
+
+	mu     sync.RWMutex
+	rooms  map[int64]*room
+	models data.Models
 }
 
-func NewServer(redisDB *redis.Client) *Server {
+func NewServer(models data.Models) *Server {
 	return &Server{
-		redisDB:    redisDB,
-		rooms:      make(map[int64]*room),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
-		Broadcast:  make(chan *Message),
+		Broadcast:  make(chan *data.Message),
+		rooms:      make(map[int64]*room),
+		models:     models,
 	}
 }
 
@@ -51,9 +50,14 @@ func (server *Server) Run() {
 			room.clients[client] = struct{}{}
 			room.mu.Unlock()
 
-			room.mu.RLock()
+			// Get message history
+			messages, err := server.models.Message.Get(client.RoomID)
+			if err != nil {
+				log.Println(err)
+			}
+
 			// Send message history
-			for _, message := range room.messages {
+			for _, message := range messages {
 				select {
 				case client.Message <- message:
 				default:
@@ -61,7 +65,6 @@ func (server *Server) Run() {
 					go client.CloseSlow()
 				}
 			}
-			room.mu.RUnlock()
 		case client := <-server.Unregister:
 			if room, ok := server.rooms[client.RoomID]; ok {
 				room.mu.Lock()
@@ -78,13 +81,9 @@ func (server *Server) Run() {
 			}
 		case message := <-server.Broadcast:
 			if room, ok := server.rooms[message.RoomID]; ok {
-				//room.mu.Lock()
-				//// Add message to history
-				//room.messages = append(room.messages, message)
-				//room.mu.Unlock()
-
-				roomMessagesKey := "room:" + strconv.FormatInt(message.RoomID, 10) + ":messages"
-				server.redisDB.RPush(context.Background(), roomMessagesKey, message)
+				if err := server.models.Message.Set(message); err != nil {
+					log.Println(err.Error())
+				}
 
 				room.mu.RLock()
 				// Send message to all clients

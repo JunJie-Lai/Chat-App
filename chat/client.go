@@ -13,7 +13,7 @@ type Client struct {
 	Conn      *websocket.Conn
 	Logger    *slog.Logger
 	User      *data.User
-	Message   chan *Message
+	Message   chan *data.Message
 	Server    *Server
 	RoomID    int64
 	CloseSlow func()
@@ -44,7 +44,7 @@ func (client *Client) ReadMessage() {
 			}
 			break
 		}
-		client.Server.Broadcast <- &Message{
+		client.Server.Broadcast <- &data.Message{
 			Username:  client.User.Name,
 			Message:   message,
 			Timestamp: time.Now(),
